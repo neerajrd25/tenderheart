@@ -1,0 +1,142 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Nunito:wght@400;600;700;800&display=swap');
+
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+}
+
+/* Everything in the app is sized in rem, so this one value scales all text.
+   16px on small phones, growing with the screen so large phones (Pixel Pro,
+   iPhone Pro Max) get native-app-sized text instead of a "zoomed out" page. */
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  /* No rubber-band / pull-to-refresh, no sideways drift: behaves like an app, not a web page */
+  overscroll-behavior: none;
+  overflow-x: clip;
+}
+@media (max-width: 600px) {
+  html {
+    font-size: clamp(16px, 4.25vw, 19px);
+  }
+}
+
+body {
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-family: 'Nunito', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background: #FFF8F2;
+  /* No grey flash on tap, no accidental pull-to-refresh while filling a report */
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+  overflow-x: clip;
+  /* Removes the double-tap-to-zoom delay so taps respond instantly */
+  touch-action: manipulation;
+}
+
+/* Controls and chrome can't be text-selected or long-pressed, as in a native app.
+   Content people may want to copy (inputs, report text) stays selectable. */
+button,
+[role='button'],
+[role='radio'],
+header,
+.MuiChip-root,
+.MuiFab-root {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.18);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.28);
+}
+
+/* Fade-in animation for page entry */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes pulse-ring {
+  0%   { transform: scale(0.9); opacity: 1; }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+
+@keyframes checkmark-pop {
+  0%   { transform: scale(0); }
+  60%  { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+.anim-fade-in-up {
+  animation: fadeInUp 0.35s ease both;
+}
+
+.anim-fade-in {
+  animation: fadeIn 0.3s ease both;
+}
+
+/* Time input styling fix */
+input[type='time']::-webkit-calendar-picker-indicator {
+  opacity: 0.5;
+  cursor: pointer;
+}
+
+/* Remove number input spinners */
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Print styles for report preview */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  .print-report {
+    box-shadow: none !important;
+    border: none !important;
+  }
+}

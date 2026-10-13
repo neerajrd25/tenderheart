@@ -1,0 +1,25 @@
+{
+  "name": "baby-day-out-backend",
+  "version": "1.0.0",
+  "description": "Baby's Day Out daycare daily-report backend (AWS Lambda, API Gateway HTTP API, MongoDB Atlas)",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "dev": "node --watch dev-server.js",
+    "start": "node dev-server.js",
+    "test": "node --experimental-test-module-mocks --test \"src/tests/**/*.test.js\"",
+    "build": "node scripts/build-lambda.mjs",
+    "deploy": "bash scripts/deploy.sh"
+  },
+  "dependencies": {
+    "google-auth-library": "^9.14.2",
+    "mongodb": "^6.9.0",
+    "nodemailer": "^6.9.15"
+  },
+  "devDependencies": {
+    "dotenv": "^16.4.5"
+  }
+}

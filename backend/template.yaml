@@ -1,0 +1,132 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Baby's Day Out backend - AWS Lambda + API Gateway HTTP API (payload v2) + MongoDB Atlas.
+
+Parameters:
+  DbUrl:
+    Type: String
+    NoEcho: true
+    Description: MongoDB Atlas connection string
+  DbName:
+    Type: String
+    Default: daycare
+  GoogleClientId:
+    Type: String
+    Description: Google OAuth 2.0 client ID used to verify ID tokens
+  SmtpHost:
+    Type: String
+  SmtpPort:
+    Type: String
+    Default: '587'
+  SmtpUser:
+    Type: String
+  SmtpPassword:
+    Type: String
+    NoEcho: true
+  SmtpFrom:
+    Type: String
+    Default: info@nexuschainconsulting.com
+  FrontendUrl:
+    Type: String
+    Description: Deployed CloudFront URL of the frontend (for reference/CORS docs)
+  Timezone:
+    Type: String
+    Default: Asia/Kolkata
+    Description: IANA timezone of the daycare; used for the auto-send schedule and times shown in emails
+  AutoSendSchedule:
+    Type: String
+    Default: cron(0 19 * * ? *)
+    Description: When complete, unsent reports are emailed automatically (evaluated in Timezone)
+  OrgTag:
+    Type: String
+    Default: Nexus
+  LogRetentionDays:
+    Type: Number
+    Default: 14
+
+Globals:
+  Function:
+    Timeout: 29
+    MemorySize: 512
+    Runtime: nodejs22.x
+    Architectures:
+      - arm64
+    Tags:
+      ORG: !Ref OrgTag
+      APP: baby-day-out
+
+Resources:
+  BabyDayOutHttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: $default
+      Tags:
+        ORG: !Ref OrgTag
+        APP: baby-day-out
+
+  BabyDayOutFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: baby-day-out-backend
+      CodeUri: .build/lambda/
+      Handler: src/handlers/index.handler
+      Environment:
+        Variables:
+          NODE_ENV: production
+          DB_URL: !Ref DbUrl
+          DB_NAME: !Ref DbName
+          GOOGLE_CLIENT_ID: !Ref GoogleClientId
+          SMTP_HOST: !Ref SmtpHost
+          SMTP_PORT: !Ref SmtpPort
+          SMTP_USER: !Ref SmtpUser
+          SMTP_PASSWORD: !Ref SmtpPassword
+          SMTP_FROM: !Ref SmtpFrom
+          FRONTEND_URL: !Ref FrontendUrl
+          APP_TIMEZONE: !Ref Timezone
+          DEV_BYPASS_AUTH: 'false'
+      Events:
+        RootRoute:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref BabyDayOutHttpApi
+            Path: /
+            Method: GET
+        ProxyRoute:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref BabyDayOutHttpApi
+            Path: /{proxy+}
+            Method: ANY
+        AutoSendSchedule:
+          Type: ScheduleV2
+          Properties:
+            Name: baby-day-out-auto-send
+            Description: Emails every complete, unsent daily report at the end of the day
+            ScheduleExpression: !Ref AutoSendSchedule
+            ScheduleExpressionTimezone: !Ref Timezone
+            Input: '{"source": "babysdayout.auto-send"}'
+            RetryPolicy:
+              MaximumRetryAttempts: 0
+
+  BabyDayOutFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${BabyDayOutFunction}
+      RetentionInDays: !Ref LogRetentionDays
+      Tags:
+        - Key: ORG
+          Value: !Ref OrgTag
+        - Key: APP
+          Value: baby-day-out
+
+Outputs:
+  ApiUrl:
+    Description: Base URL of the deployed HTTP API
+    Value: !Sub https://${BabyDayOutHttpApi}.execute-api.${AWS::Region}.amazonaws.com
+  FunctionName:
+    Description: Deployed Lambda function name
+    Value: !Ref BabyDayOutFunction
+  FunctionArn:
+    Description: Deployed Lambda function ARN
+    Value: !GetAtt BabyDayOutFunction.Arn
