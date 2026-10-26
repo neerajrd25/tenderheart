@@ -40,10 +40,12 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import EditNoteIcon from '@mui/icons-material/EditNote';
 import SpaIcon from '@mui/icons-material/Spa';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import EditIcon from '@mui/icons-material/Edit';
 import Navbar from '../components/Navbar.jsx';
 import ChoiceChips from '../components/ChoiceChips.jsx';
 import ReportPreview from '../components/ReportPreview.jsx';
 import SendPanel from '../components/SendPanel.jsx';
+import EditChildDialog from '../components/EditChildDialog.jsx';
 import { fetchChild } from '../api/children.js';
 import {
   fetchDailyReport,
@@ -191,6 +193,7 @@ export default function ChildReportPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
+  const [editOpen, setEditOpen] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -325,17 +328,17 @@ export default function ChildReportPage() {
   }
 
   // Derived
-  const isLocked  = report?.status === 'SENT';
+  const isLocked = report?.status === 'SENT';
   const isSending = report?.status === 'SENDING';
 
   // Mirrors the backend's completion rules so the Send button never promises more than the API allows.
   const checklist = useMemo(() => {
     if (form.attendance === 'Absent') return [{ label: 'Marked absent', done: true }];
     return [
-      { label: 'Attendance marked',  done: !!form.attendance },
-      { label: 'Time in recorded',   done: !!form.timeIn },
-      { label: 'Time out recorded',  done: !!form.timeOut },
-      { label: 'All meals noted',    done: !!(form.breakfast && form.lunch && form.eveningSnacks) },
+      { label: 'Attendance marked', done: !!form.attendance },
+      { label: 'Time in recorded', done: !!form.timeIn },
+      { label: 'Time out recorded', done: !!form.timeOut },
+      { label: 'All meals noted', done: !!(form.breakfast && form.lunch && form.eveningSnacks) },
     ];
   }, [form]);
 
@@ -405,10 +408,10 @@ export default function ChildReportPage() {
     );
   }
 
-  const palette    = getGenderPalette(child.gender);
+  const palette = getGenderPalette(child.gender);
   const statusMeta = getStatusMeta(report?.status);
-  const isAbsent   = form.attendance === 'Absent';
-  const busy       = !!quickLoading;
+  const isAbsent = form.attendance === 'Absent';
+  const busy = !!quickLoading;
 
   return (
     <Box sx={{ minHeight: '100dvh', bgcolor: 'background.default', pb: `calc(${isLocked ? 24 : 104}px + ${brand.safeBottom})` }}>
@@ -452,6 +455,16 @@ export default function ChildReportPage() {
                 </Typography>
               </Stack>
             </Box>
+
+            {/* Edit child button */}
+            <IconButton
+              onClick={() => setEditOpen(true)}
+              aria-label="Edit child information"
+              disabled={isLocked}
+              sx={{ bgcolor: 'rgba(255,255,255,0.8)', flexShrink: 0, '&:hover': { bgcolor: '#fff' } }}
+            >
+              <EditIcon />
+            </IconButton>
           </Stack>
         </Container>
       </Box>
@@ -772,6 +785,18 @@ export default function ChildReportPage() {
           {snackbar.message}
         </Alert>
       </Snackbar>
+
+      {/* ── Edit child dialog ── */}
+      <EditChildDialog
+        open={editOpen}
+        child={child}
+        onClose={() => setEditOpen(false)}
+        onSaved={(updated) => {
+          setChild(updated);
+          setEditOpen(false);
+          setSnackbar({ message: 'Child information updated', severity: 'success' });
+        }}
+      />
     </Box>
   );
 }
