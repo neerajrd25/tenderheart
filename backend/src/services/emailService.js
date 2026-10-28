@@ -165,6 +165,7 @@ export async function sendDailyReportEmail(child, report) {
   await transporter.sendMail({
     from: { name: 'TenderHeart', address },
     to: child.parentEmail,
+    cc: child.parent2Email || undefined,
     subject: `TenderHeart - ${child.name} - ${report.date}`,
     html: buildEmailHtml(child, report),
   });

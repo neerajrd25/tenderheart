@@ -2,6 +2,8 @@ import { ObjectId } from 'mongodb';
 import { getDb } from '../config/db.js';
 import { requireFields, isValidEmail, GENDERS, ValidationError } from '../utils/validation.js';
 
+const PHONE_REGEX = /^\+91[0-9]{10}$/;
+
 function toObjectId(id) {
   if (!ObjectId.isValid(id)) {
     throw new ValidationError('Invalid id format');
@@ -24,6 +26,34 @@ function validateChildInput(input, { partial = false } = {}) {
 
   if (input.dateOfBirth !== undefined && Number.isNaN(Date.parse(input.dateOfBirth))) {
     throw new ValidationError('dateOfBirth must be a valid date');
+  }
+
+  // Second parent: email required when name is provided
+  if (input.parent2Name !== undefined && input.parent2Name !== null && String(input.parent2Name).trim() !== '') {
+    if (!input.parent2Email || !isValidEmail(input.parent2Email)) {
+      throw new ValidationError('parent2Email is required and must be a valid email when parent2Name is provided');
+    }
+  }
+  if (input.parent2Email !== undefined && input.parent2Email !== null && input.parent2Email !== '') {
+    if (!isValidEmail(input.parent2Email)) {
+      throw new ValidationError('parent2Email must be a valid email address');
+    }
+  }
+
+  // Emergency contact validation
+  if (input.emergencyContact !== undefined && input.emergencyContact !== null) {
+    const ec = input.emergencyContact;
+    if (ec.name !== undefined && typeof ec.name !== 'string') {
+      throw new ValidationError('emergencyContact.name must be a string');
+    }
+    if (ec.phone !== undefined && ec.phone !== null && ec.phone !== '') {
+      if (!PHONE_REGEX.test(ec.phone)) {
+        throw new ValidationError('emergencyContact.phone must be +91 followed by 10 digits (e.g. +919876543210)');
+      }
+    }
+    if (ec.relationship !== undefined && typeof ec.relationship !== 'string') {
+      throw new ValidationError('emergencyContact.relationship must be a string');
+    }
   }
 }
 
@@ -48,6 +78,15 @@ export async function createChild(userId, input) {
     photo: input.photo || null,
     parentName: input.parentName,
     parentEmail: input.parentEmail,
+    parent2Name:  input.parent2Name  || null,
+    parent2Email: input.parent2Email || null,
+    emergencyContact: input.emergencyContact
+      ? {
+          name:         input.emergencyContact.name         || '',
+          phone:        input.emergencyContact.phone        || '',
+          relationship: input.emergencyContact.relationship || '',
+        }
+      : null,
     active: input.active === undefined ? true : Boolean(input.active),
     createdAt: now,
     updatedAt: now,
@@ -83,6 +122,9 @@ export async function updateChild(userId, childId, input) {
     'photo',
     'parentName',
     'parentEmail',
+    'parent2Name',
+    'parent2Email',
+    'emergencyContact',
     'active',
   ];
 
