@@ -72,3 +72,36 @@ test('updateChild updates only provided fields', async () => {
   assert.equal(updated.parentEmail, 'new@example.com');
   assert.equal(updated.name, 'Dana');
 });
+
+test('deactivateChild marks the child inactive and hides it from listChildren', async () => {
+  const child = await childService.createChild('userA', { ...validChild, name: 'Eve' });
+
+  const deactivated = await childService.deactivateChild('userA', child._id.toString());
+  assert.equal(deactivated.active, false);
+
+  const activeChildren = await childService.listChildren('userA');
+  assert.ok(!activeChildren.some((c) => c.name === 'Eve'));
+
+  const allChildren = await childService.listChildren('userA', { includeInactive: true });
+  assert.ok(allChildren.some((c) => c.name === 'Eve' && c.active === false));
+});
+
+test('deactivateChild rejects a child owned by a different user', async () => {
+  const child = await childService.createChild('userA', { ...validChild, name: 'Finn' });
+
+  await assert.rejects(
+    childService.deactivateChild('userB', child._id.toString()),
+    (err) => err.statusCode === 404
+  );
+});
+
+test('deactivateChild is not idempotent: a second call 404s', async () => {
+  const child = await childService.createChild('userA', { ...validChild, name: 'Gus' });
+
+  await childService.deactivateChild('userA', child._id.toString());
+
+  await assert.rejects(
+    childService.deactivateChild('userA', child._id.toString()),
+    (err) => err.statusCode === 404
+  );
+});

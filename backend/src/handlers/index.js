@@ -6,6 +6,7 @@ import {
   handleCreateChild,
   handleGetChild,
   handleUpdateChild,
+  handleDeleteChild,
 } from './children.js';
 import {
   handleGetDailyReport,
@@ -44,6 +45,12 @@ const ROUTES = [
     pattern: /^\/children\/([^/]+)$/,
     auth: true,
     fn: (event, user, [id]) => handleUpdateChild(event, user, id),
+  },
+  {
+    method: 'DELETE',
+    pattern: /^\/children\/([^/]+)$/,
+    auth: true,
+    fn: (event, user, [id]) => handleDeleteChild(event, user, id),
   },
 
   {

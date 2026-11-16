@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Alert, Box, Button, Chip, Container, Fab, IconButton,
   InputAdornment, LinearProgress, Skeleton,
@@ -21,7 +21,7 @@ import InstallPrompt from '../components/InstallPrompt.jsx';
 import Logo from '../components/Logo.jsx';
 import { brand } from '../theme.js';
 import { useAuth } from '../context/AuthContext.jsx';
-import { fetchChildren } from '../api/children.js';
+import { fetchChildren, deleteChild } from '../api/children.js';
 import { fetchDailyReport } from '../api/dailyReports.js';
 import { formatLongDate, getGreeting, todayIsoDate } from '../utils/time.js';
 import { FILTERS, getDashboardGroup } from '../utils/reportStatus.js';
@@ -46,6 +46,7 @@ function SkeletonCard() {
 
 export default function DashboardPage() {
   const navigate   = useNavigate();
+  const location   = useLocation();
   const { user }   = useAuth();
   const [children,  setChildren]  = useState([]);
   const [reports,   setReports]   = useState({});
@@ -80,6 +81,29 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  // Show a toast carried over from another page (e.g. a child removed from its report page).
+  useEffect(() => {
+    if (location.state?.toast) {
+      setSnackbar(location.state.toast);
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [location, navigate]);
+
+  async function handleDeleteChild(child) {
+    try {
+      await deleteChild(child._id);
+      setChildren((prev) => prev.filter((c) => c._id !== child._id));
+      setReports((prev) => {
+        const next = { ...prev };
+        delete next[child._id];
+        return next;
+      });
+      setSnackbar(`${child.name} was removed`);
+    } catch {
+      setSnackbar('Could not remove child. Please try again.');
+    }
+  }
 
   const counts = useMemo(() => {
     const r = { ALL: children.length, NOT_STARTED: 0, IN_PROGRESS: 0, READY: 0, FAILED: 0, SENT: 0 };
@@ -267,6 +291,7 @@ export default function DashboardPage() {
                 child={child}
                 report={reports[child._id]}
                 onClick={() => navigate(`/children/${child._id}/report`)}
+                onDelete={handleDeleteChild}
               />
             ))}
           </Stack>

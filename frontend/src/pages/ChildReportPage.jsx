@@ -796,6 +796,9 @@ export default function ChildReportPage() {
           setEditOpen(false);
           setSnackbar({ message: 'Child information updated', severity: 'success' });
         }}
+        onDeleted={() => {
+          navigate('/dashboard', { replace: true, state: { toast: `${child.name} was removed` } });
+        }}
       />
     </Box>
   );
