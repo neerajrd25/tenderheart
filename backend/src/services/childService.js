@@ -149,3 +149,24 @@ export async function updateChild(userId, childId, input) {
 
   return result;
 }
+
+// Soft delete: marks the child inactive instead of removing the document, so
+// existing daily reports keep a valid childId reference for history/audit.
+export async function deactivateChild(userId, childId) {
+  const db = await getDb();
+  const result = await db
+    .collection('children')
+    .findOneAndUpdate(
+      { _id: toObjectId(childId), userId: userId.toString(), active: true },
+      { $set: { active: false, updatedAt: new Date() } },
+      { returnDocument: 'after' }
+    );
+
+  if (!result) {
+    const err = new Error('Child not found');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  return result;
+}

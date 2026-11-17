@@ -23,3 +23,8 @@ export async function handleUpdateChild(event, user, childId) {
   const child = await childService.updateChild(user._id, childId, body);
   return successResponse(child, 'Child updated');
 }
+
+export async function handleDeleteChild(event, user, childId) {
+  const child = await childService.deactivateChild(user._id, childId);
+  return successResponse(child, 'Child removed');
+}

@@ -1,7 +1,10 @@
-import { Card, CardActionArea, Box, Avatar, Typography, Stack } from '@mui/material';
+import { useState } from 'react';
+import { Card, CardActionArea, Box, Avatar, Typography, Stack, IconButton, Menu, MenuItem, ListItemIcon, ListItemText, Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
 import LoginIcon from '@mui/icons-material/Login';
 import LogoutIcon from '@mui/icons-material/Logout';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { brand, getGenderPalette } from '../theme.js';
 import { calculateAge, formatTimeDisplay } from '../utils/time.js';
 import { getDashboardGroup } from '../utils/reportStatus.js';
@@ -32,7 +35,7 @@ function TimeCell({ icon, label, iso, tint }) {
   );
 }
 
-export default function ChildCard({ child, report, onClick }) {
+export default function ChildCard({ child, report, onClick, onDelete }) {
   const palette = getGenderPalette(child.gender);
   const age     = calculateAge(child.dateOfBirth);
   const absent  = report?.attendance === 'Absent' && report?.status !== 'NOT_STARTED';
@@ -42,17 +45,64 @@ export default function ChildCard({ child, report, onClick }) {
     : NEXT_STEP[group];
   const isSent  = group === 'SENT';
 
+  const [menuAnchor, setMenuAnchor] = useState(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  function handleRemoveClick(event) {
+    event.stopPropagation();
+    setMenuAnchor(null);
+    setConfirmOpen(true);
+  }
+
+  function handleConfirmRemove() {
+    setConfirmOpen(false);
+    onDelete?.(child);
+  }
+
   return (
     <Card
       elevation={0}
       sx={{
+        position: 'relative',
         border: '1.5px solid',
         borderColor: isSent ? brand.sageBorder : 'divider',
         bgcolor: isSent ? brand.sageSoft : '#fff',
         boxShadow: isSent ? 'none' : brand.cardShadow,
       }}
     >
-      <CardActionArea onClick={onClick} sx={{ p: 1.75, display: 'block' }}>
+      {onDelete && (
+        <IconButton
+          aria-label={`More options for ${child.name}`}
+          onClick={(event) => { event.stopPropagation(); setMenuAnchor(event.currentTarget); }}
+          sx={{ position: 'absolute', top: 6, right: 6, zIndex: 1 }}
+          size="small"
+        >
+          <MoreVertIcon fontSize="small" />
+        </IconButton>
+      )}
+
+      <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={() => setMenuAnchor(null)}>
+        <MenuItem onClick={handleRemoveClick}>
+          <ListItemIcon><DeleteOutlineIcon fontSize="small" color="error" /></ListItemIcon>
+          <ListItemText sx={{ color: 'error.main' }}>Remove child</ListItemText>
+        </MenuItem>
+      </Menu>
+
+      <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Remove {child.name}?</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary">
+            {child.name} will be removed from the roster and won&apos;t receive any more daily reports.
+            Their past reports are kept for your records.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ p: 2, gap: 1 }}>
+          <Button onClick={() => setConfirmOpen(false)} sx={{ flex: 1 }}>Cancel</Button>
+          <Button onClick={handleConfirmRemove} color="error" variant="contained" sx={{ flex: 1 }}>Remove</Button>
+        </DialogActions>
+      </Dialog>
+
+      <CardActionArea onClick={onClick} sx={{ p: 1.75, pr: onDelete ? 4.75 : 1.75, display: 'block' }}>
         <Stack direction="row" spacing={1.5} alignItems="center">
           <Avatar
             src={child.photo || undefined}

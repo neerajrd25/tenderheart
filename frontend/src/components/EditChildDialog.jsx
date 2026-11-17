@@ -7,8 +7,9 @@ import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import ContactPhoneIcon from '@mui/icons-material/ContactPhone';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import ChoiceChips from './ChoiceChips.jsx';
-import { updateChild } from '../api/children.js';
+import { updateChild, deleteChild } from '../api/children.js';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_PATTERN = /^\+91[0-9]{10}$/;
@@ -31,13 +32,15 @@ function makeForm(child) {
   };
 }
 
-export default function EditChildDialog({ open, child, onClose, onSaved }) {
+export default function EditChildDialog({ open, child, onClose, onSaved, onDeleted }) {
   const [form, setForm] = useState(null);
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
   const [showParent2, setShowParent2] = useState(false);
   const [showEC, setShowEC] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // Pre-fill whenever the dialog opens with a new child
   useEffect(() => {
@@ -47,6 +50,7 @@ export default function EditChildDialog({ open, child, onClose, onSaved }) {
       setFormError('');
       setShowParent2(Boolean(child.parent2Name || child.parent2Email));
       setShowEC(Boolean(child.emergencyContact?.name || child.emergencyContact?.phone || child.emergencyContact?.relationship));
+      setConfirmDeleteOpen(false);
     }
   }, [child, open]);
 
@@ -96,6 +100,21 @@ export default function EditChildDialog({ open, child, onClose, onSaved }) {
   function handleClose() {
     if (saving) return;
     onClose();
+  }
+
+  async function handleDelete() {
+    setDeleting(true);
+    setFormError('');
+    try {
+      await deleteChild(child._id);
+      setConfirmDeleteOpen(false);
+      onDeleted?.(child._id);
+    } catch (err) {
+      setFormError(err.response?.data?.message || 'Could not remove child. Please try again.');
+      setConfirmDeleteOpen(false);
+    } finally {
+      setDeleting(false);
+    }
   }
 
   async function handleSubmit(event) {
@@ -265,6 +284,18 @@ export default function EditChildDialog({ open, child, onClose, onSaved }) {
               value={form.photo} onChange={(e) => setField('photo', e.target.value)}
               placeholder="https://…"
             />
+
+            <Divider />
+
+            {/* ── Danger zone ── */}
+            <Button
+              color="error"
+              startIcon={<DeleteOutlineIcon />}
+              onClick={() => setConfirmDeleteOpen(true)}
+              sx={{ alignSelf: 'flex-start', textTransform: 'none', fontWeight: 600 }}
+            >
+              Remove child
+            </Button>
           </Stack>
         </DialogContent>
 
@@ -277,6 +308,30 @@ export default function EditChildDialog({ open, child, onClose, onSaved }) {
           </Button>
         </DialogActions>
       </Box>
+
+      {/* ── Remove child confirmation ── */}
+      <Dialog
+        open={confirmDeleteOpen}
+        onClose={() => !deleting && setConfirmDeleteOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Remove {child.name}?</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary">
+            {child.name} will be removed from the roster and won&apos;t receive any more daily reports.
+            Their past reports are kept for your records.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ p: 2, gap: 1 }}>
+          <Button onClick={() => setConfirmDeleteOpen(false)} disabled={deleting} sx={{ flex: 1 }}>
+            Cancel
+          </Button>
+          <Button onClick={handleDelete} color="error" variant="contained" disabled={deleting} sx={{ flex: 1 }}>
+            {deleting ? 'Removing…' : 'Remove'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Dialog>
   );
 }

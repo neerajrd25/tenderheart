@@ -19,3 +19,8 @@ export async function updateChild(childId, payload) {
   const { data } = await apiClient.put(`/children/${childId}`, payload);
   return data.data;
 }
+
+export async function deleteChild(childId) {
+  const { data } = await apiClient.delete(`/children/${childId}`);
+  return data.data;
+}
